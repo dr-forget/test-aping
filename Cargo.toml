@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "nng"
+name = "napi-nng"
 version = "0.0.0"
 
 [lib]
@@ -15,6 +15,6 @@ nng = "1.0.1"
 [build-dependencies]
 napi-build = "2.0.1"
 
+
 [profile.release]
 lto = true
-strip = "symbols"
