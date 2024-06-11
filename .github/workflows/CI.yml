@@ -27,7 +27,7 @@ jobs:
         settings:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:stable-2023-09-17-x64
             build: yarn build --target x86_64-unknown-linux-musl
     name: stable - ${{ matrix.settings.target }} - node@20
     runs-on: ${{ matrix.settings.host }}
