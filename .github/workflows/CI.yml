@@ -1,7 +1,7 @@
 name: CI
 env:
   DEBUG: napi:*
-  APP_NAME: nng
+  APP_NAME: testnng
   MACOSX_DEPLOYMENT_TARGET: "10.13"
 permissions:
   contents: write
@@ -27,21 +27,12 @@ jobs:
         settings:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
-            build: yarn build --target x86_64-unknown-linux-musl
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine-zig
-            build: |-
-              set -e &&
-              rustup target add aarch64-unknown-linux-musl &&
-              yarn build --target aarch64-unknown-linux-musl
+            build: yarn build --target x86_64-unknown-linux-musl
     name: stable - ${{ matrix.settings.target }} - node@20
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install development packages
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib libc-dev gcc
       - name: Setup node
         uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
@@ -65,7 +56,7 @@ jobs:
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.host }}
       - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' || matrix.settings.target == 'armv7-unknown-linux-musleabihf'  || matrix.settings.target == 'aarch64-unknown-linux-gnu' || matrix.settings.target == 'aarch64-unknown-linux-musl' }}
+        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' || matrix.settings.target == 'armv7-unknown-linux-musleabihf' }}
         with:
           version: 0.11.0
       - name: Setup toolchain
@@ -134,45 +125,11 @@ jobs:
         shell: bash
       - name: Test bindings
         run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine yarn test
-  test-linux-aarch64-musl-binding:
-    name: Test bindings on aarch64-unknown-linux-musl - node@${{ matrix.node }}
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bindings-aarch64-unknown-linux-musl
-          path: .
-      - name: List packages
-        run: ls -R .
-        shell: bash
-      - name: Install dependencies
-        run: |
-          yarn config set supportedArchitectures.cpu "arm64"
-          yarn config set supportedArchitectures.libc "musl"
-          yarn install
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Setup and run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:lts-alpine
-          options: "--platform linux/arm64 -v ${{ github.workspace }}:/build -w /build"
-          run: |
-            set -e
-            yarn test
   publish:
     name: Publish
     runs-on: ubuntu-latest
     needs:
       - test-linux-x64-musl-binding
-      - test-linux-aarch64-musl-binding
     steps:
       - uses: actions/checkout@v4
       - name: Setup node
